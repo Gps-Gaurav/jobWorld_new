@@ -4,7 +4,6 @@ import { User } from "../models/user.model.js";
 import { apiResponse } from "../utils.js/apiResponse.utils.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils.js/cloudinary.utils.js";
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import getDataUri from "../utils.js/dataURI.utils.js";
 import cloudinary from "../utils.js/file.cloudinary.utils.js";
 import axios from "axios";
@@ -13,112 +12,231 @@ import { Application } from "../models/application.model.js";
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import fs from 'fs';
-
+import bcrypt from "bcrypt";
 
 const generateAcessTokenAndRefreshToken = async (userId) => {
     try {
         const user = await User.findById(userId);
-        // console.log("from generate token", user)
+        if (!user) {
+            throw new apiError(404, "User not found");
+        }
+
+        // Using the methods defined in your user model
         const accessToken = await user.genAccessToken();
         const refreshToken = await user.genRefreshToken();
 
-        user.refreshToken = refreshToken; //yha hum ,user database me refreshToken save kra rhe h
-        // console.log("user.refreshToken", user.refreshToken)
-        await user.save({ validateBeforeSave: false })//vaidation nhi lagao sidha ja k save kr do.
-        return { accessToken, refreshToken }
+        // Save refresh token to user
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+        return { accessToken, refreshToken };
+    } catch (error) {
+        console.error("Token generation error:", error);
+        throw new apiError(500, "Error while generating tokens");
+    }
+};
+
+const loginUser = asyncHandler(async (req, res) => {
+    try {
+        // 1. Extract credentials
+        const { identifier, password, role } = req.body;
+
+        // 2. Validate input
+        if (!identifier || !password || !role) {
+            throw new apiError(400, "Email/Phone, password and role are required");
+        }
+
+        // 3. Validate role
+        if (!["student", "recruiter"].includes(role)) {
+            throw new apiError(400, "Invalid role specified");
+        }
+
+        // 4. Find user with exact role match
+        const user = await User.findOne({
+            $and: [
+                { $or: [{ email: identifier }, { phoneNumber: identifier }] },
+                { role: role }
+            ]
+        }).select("+password"); // Explicitly selecting password
+
+        if (!user) {
+            throw new apiError(401, `No ${role} account found with these credentials`);
+        }
+
+        // 5. Verify password using the comparePassword method from your schema
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+            throw new apiError(401, "Invalid password");
+        }
+
+        // 6. Generate tokens
+        const { accessToken, refreshToken } = await generateAcessTokenAndRefreshToken(user._id);
+
+        // 7. Get user without sensitive info
+        const loggedInUser = await User.findById(user._id)
+            .select("-password -refreshToken -resetPasswordToken -resetPasswordExpiry");
+
+        // 8. Set cookie options
+        const options = {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        };
+
+        // 9. Add login timestamp in UTC
+        const loginTimestamp = new Date().toISOString();
+        user.lastLoginAt = loginTimestamp;
+        await user.save({ validateBeforeSave: false });
+
+        // 10. Send response
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(
+                new apiResponse(
+                    200,
+                    {
+                        user: {
+                            ...loggedInUser.toObject(),
+                            lastLoginAt: loginTimestamp
+                        },
+                        accessToken,
+                        refreshToken
+                    },
+                    `Welcome back, ${user.fullName}!`
+                )
+            );
 
     } catch (error) {
-        throw new apiError(500, error, 'Something went wrong while  generating Access & Refresh token');
+        console.error("Login error:", error);
+        throw new apiError(
+            error.statusCode || 500,
+            error.message || "Login failed"
+        );
     }
-}
+});
 const registerUser = asyncHandler(async (req, res) => {
-    // console.log("HGCTJ LBLUI  YILG  UILL BIUG  UIH")
-    const { fullName, email, password, phoneNumber, role, bio = "" } = req.body; // Default bio to an empty string if not provided
+    // 1. Extract and validate required fields
+    const { 
+        fullName, 
+        email, 
+        password, 
+        phoneNumber, 
+        role, 
+        bio = "" 
+    } = req.body;
 
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
-    // console.log("existingUser from registerUser", existingUser);
-    if (existingUser) {
-        throw new apiError(400, "Email Already Exists");
+    // 2. Validate required fields
+    if (!fullName || !email || !password || !phoneNumber || !role) {
+        throw new apiError(400, "All required fields must be provided");
     }
 
-    // req.files from multer middleware
-    const avatarLocalFilePath = req.files?.avatar?.[0]?.path;
-    const coverImageLocalFilePath = req.files?.coverImage?.[0]?.path;
+    // 3. Validate email format
+    const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(email)) {
+        throw new apiError(400, "Please provide a valid email address");
+    }
 
-    // Upload to Cloudinary (assuming `uploadOnCloudinary` is a function that returns an object with `secure_url`)
-    const avatar = avatarLocalFilePath ? await uploadOnCloudinary(avatarLocalFilePath) : null;
-    const coverImage = coverImageLocalFilePath ? await uploadOnCloudinary(coverImageLocalFilePath) : null;
-    // console.log("avtar from register is ", avatar);
-    // Create new user with nested profile fields
+    // 4. Validate phone number format (assuming 10 digits)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+        throw new apiError(400, "Please provide a valid phone number");
+    }
+
+    // 5. Check if user already exists
+    const existingUser = await User.findOne({
+        $or: [
+            { email },
+            { phoneNumber }
+        ]
+    });
+
+    if (existingUser) {
+        throw new apiError(
+            400, 
+            `User already exists with this ${existingUser.email === email ? 'email' : 'phone number'}`
+        );
+    }
+
+    // 6. Handle file uploads
+    let avatar = null;
+    let coverImage = null;
+
+    try {
+        // Handle avatar upload
+        if (req.files?.avatar?.[0]?.path) {
+            const avatarResult = await uploadOnCloudinary(req.files.avatar[0].path);
+            if (!avatarResult?.secure_url) {
+                throw new apiError(400, "Error uploading avatar");
+            }
+            avatar = avatarResult.secure_url;
+        }
+
+        // Handle cover image upload
+        if (req.files?.coverImage?.[0]?.path) {
+            const coverImageResult = await uploadOnCloudinary(req.files.coverImage[0].path);
+            if (!coverImageResult?.secure_url) {
+                throw new apiError(400, "Error uploading cover image");
+            }
+            coverImage = coverImageResult.secure_url;
+        }
+    } catch (error) {
+        throw new apiError(500, "Error while uploading images: " + error.message);
+    }
+
+    // 7. Create new user
     const user = await User.create({
-        fullName,
-        email,
+        fullName: fullName.trim(),
+        email: email.toLowerCase(),
         password,
         phoneNumber,
         role,
         profile: {
-            bio,
-            avatar: avatar ? avatar.secure_url : null,
-            coverImage: coverImage ? coverImage.secure_url : null,
+            bio: bio.trim(),
+            avatar,
+            coverImage
         }
     });
 
-    // Fetch created user without password and refreshToken
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+    // 8. Generate tokens for automatic login
+    const { accessToken, refreshToken } = await generateAcessTokenAndRefreshToken(user._id);
+
+    // 9. Fetch created user without sensitive information
+    const createdUser = await User.findById(user._id)
+        .select("-password -refreshToken");
+
     if (!createdUser) {
         throw new apiError(500, "Something went wrong while registering the user");
     }
 
-    return res.status(200).json(
-        new apiResponse(200, createdUser, `Welcome ${createdUser.fullName}! You are registered successfully`)
-    );
-});
-const loginUser = asyncHandler(async (req, res) => {
-
-    const { identifier, password } = req.body; // Single field for email/phoneNumber
-    // console.log(" identifier, password ", identifier, password);
-    // Check if identifier and password are provided
-    if (!identifier || !password) {
-        throw new apiError(400, "Both identifier and password are required");
-    }
-    const user = await User.findOne({
-        $or: [{ email: identifier }, { phoneNumber: identifier }],
-    });
-
-
-    // console.log("user from lohgi user is ", user)
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-        throw new apiError(401, "Invalid email or password");
-    }
-    // console.log(user.id);
-    const { accessToken, refreshToken } = await generateAcessTokenAndRefreshToken(user._id);
-    // console.log("accessToken is", accessToken);
-    // console.log("refreshToken is", refreshToken);
-    const loggedUser = await User.findById(user._id).select("-password -refreshToken");
-
-    //options for cookies
-    //cookie by default frontend se modifiable hoti,2 dono option true hone se,only can modify from server.
+    // 10. Set cookie options
     const options = {
-        httpOnly: true, // Prevents client-side access to the cookie
-        secure: true, // Use secure cookies in production
-        sameSite: "Strict", // CSRF protection
-        maxAge: 24 * 60 * 60 * 1000 // Cookie expiration time (e.g., 1 day)
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     };
 
+    // 11. Send response
     return res
-        .status(200)
+        .status(201)  // Changed to 201 for resource creation
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
         .json(
             new apiResponse(
-                200,
-                { user: loggedUser, accessToken, refreshToken },
-                "User logged in successfully"
+                201,
+                {
+                    user: createdUser,
+                    accessToken,
+                    refreshToken
+                },
+                `Welcome ${createdUser.fullName}! You are registered successfully`
             )
-        )
+        );
 });
+
 const logOut = asyncHandler(async (req, res) => {
     // Remove token from database
     await User.findByIdAndUpdate(
