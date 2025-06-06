@@ -148,10 +148,10 @@ const Header = () => {
               <div className="flex flex-col h-full">
                 <div className="p-4 border-b">
                   <Link to="/" className="text-2xl font-bold text-primary">
-                    <span className="text-yellow-500">Work</span>ify
+                    <span className="text-yellow-500">Job</span>World
                   </Link>
                 </div>
-                
+
                 {/* Mobile Search */}
                 <div className="p-4">
                   <div className="relative">
@@ -172,11 +172,10 @@ const Header = () => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        location.pathname === item.path
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${location.pathname === item.path
                           ? "bg-primary/10 text-primary"
                           : "hover:bg-muted"
-                      }`}
+                        }`}
                       onClick={() => setMenuOpen(false)}
                     >
                       {item.icon}
@@ -290,7 +289,7 @@ const Header = () => {
             </SheetContent>
           </Sheet>
           <Link to="/" className="text-2xl font-bold text-primary">
-            <span className="text-yellow-500">Work</span>ify
+            <span className="text-yellow-500">Job</span>World
           </Link>
         </div>
 
@@ -322,7 +321,7 @@ const Header = () => {
               >
                 AppliedJobs
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
+              <DropdownMenuContent
                 className="w-[90vw] max-w-[800px] p-4"
                 align="center"
                 sideOffset={8}
@@ -338,7 +337,7 @@ const Header = () => {
               <DropdownMenuTrigger
                 className={`${navLinkStyles.base} ${navLinkStyles.inactive}`}
               >
-                More 
+                More
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
                 <DropdownMenuItem asChild>
@@ -402,8 +401,8 @@ const Header = () => {
 
                     <div className="mt-4 w-full flex flex-col gap-3">
                       <Link to="/change-password">
-                        <Button 
-                          variant="none" 
+                        <Button
+                          variant="none"
                           className="w-full flex items-center justify-start gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 border-0 focus:ring-0 focus:outline-none"
                         >
                           <Lock className="h-5 w-5" />
@@ -411,8 +410,8 @@ const Header = () => {
                         </Button>
                       </Link>
                       <Link to="/profile">
-                        <Button 
-                          variant="none" 
+                        <Button
+                          variant="none"
                           className="w-full flex items-center justify-start gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 border-0 focus:ring-0 focus:outline-none"
                         >
                           <User className="h-5 w-5" />
