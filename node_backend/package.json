@@ -1,5 +1,5 @@
 {
-  "name": "chaiaurcode",
+  "name": "jobworld",
   "version": "1.0.0",
   "main": "server.js",
   "type": "module",
@@ -7,7 +7,7 @@
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/server.js",
     "start": "node src/server.js"
   },
-  "author": "Ankit Srivastav",
+  "author": "Gaurav Pratap Singh",
   "license": "ISC",
   "description": "This is a college project backend started on 24-10-2024",
   "dependencies": {
