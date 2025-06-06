@@ -1,7 +1,6 @@
 import express, { urlencoded } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-const serverless = require('serverless-http'); // ✨
 
 const app = express();
 
@@ -50,4 +49,4 @@ app.use('/api/v1/company', companyRouter);
 app.use('/api/v1/job', jobRouter);
 app.use('/api/v1/application', applicationRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
-export const handler = serverless(app);
+export { app };
