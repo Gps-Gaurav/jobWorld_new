@@ -9,17 +9,20 @@ let isConnected = false;
 const serverlessHandler = serverless(app);
 
 export const handler = async (event, context) => {
-  try {
-    if (!isConnected) {
-      await connectDB();
-      isConnected = true;
+    console.log('Handler invoked!');
+    try {
+      if (!isConnected) {
+        console.log('Connecting to MongoDB...');
+        await connectDB();
+        isConnected = true;
+      }
+      console.log('Passing to serverless handler...');
+      return await serverlessHandler(event, context);
+    } catch (error) {
+      console.error('Error in handler:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Internal Server Error' }),
+      };
     }
-    return await serverlessHandler(event, context);
-  } catch (error) {
-    console.error("Handler error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal Server Error" }),
-    };
-  }
-};
+  };
