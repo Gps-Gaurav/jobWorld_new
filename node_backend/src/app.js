@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 const allowedOrigins = [
-    "https://job-world-new.vercel.app",
+    "https://jobworld-new.onrender.com/",
     "http://localhost:4000",
     "http://localhost:5173",
 ];
