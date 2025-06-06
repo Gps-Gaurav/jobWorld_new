@@ -92,7 +92,7 @@ const HeroSection = () => {
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.2 }}
                             >
-                                Welcome to Workify
+                                Welcome to JobWorld
                             </motion.span>
                             <motion.h1 
                                 className="text-4xl lg:text-6xl font-bold leading-tight text-foreground"
@@ -106,7 +106,7 @@ const HeroSection = () => {
                             transition={{ duration: 0.8, delay: 0.2 }}
                             className="mt-6 text-lg lg:text-xl text-muted-foreground"
                         >
-                            Workify connects you with top companies and helps you unlock
+                            JobWorld connects you with top companies and helps you unlock
                             your full potential. Start your journey to success today.
                         </motion.p>
                         <motion.div 

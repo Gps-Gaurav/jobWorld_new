@@ -134,7 +134,7 @@ const Chat = () => {
                     <DialogHeader>
                         <DialogTitle className="text-lg font-semibold text-blue-600 dark:text-blue-400">AI Support Assistant</DialogTitle>
                         <DialogDescription className="text-sm text-muted-foreground">
-                            Ask me anything about job searching or using Workify!
+                            Ask me anything about job searching or using JobWorld!
                         </DialogDescription>
                     </DialogHeader>
 

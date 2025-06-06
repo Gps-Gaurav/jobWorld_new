@@ -52,7 +52,7 @@ const Footer = () => {
               transition={{ duration: 0.5 }}
             >
               <h3 className="font-bold text-2xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Workify
+              JobWorld
               </h3>
               <p className="text-secondary-foreground text-sm leading-relaxed mt-2">
                 Empowering careers through AI-driven insights and opportunities.
@@ -65,11 +65,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center text-secondary-foreground">
                 <Mail className="w-4 h-4 mr-2" />
-                <span>support@workify.com</span>
+                <span>support@JobWorld.com</span>
               </div>
               <div className="flex items-center text-secondary-foreground">
                 <Phone className="w-4 h-4 mr-2" />
-                <span>+1 (234) 567-890</span>
+                <span>+91 9389879393</span>
               </div>
             </div>
           </div>
@@ -132,7 +132,7 @@ const Footer = () => {
           className="mt-12 border-t border-border pt-6 text-center"
         >
           <p className="text-secondary-foreground text-sm">
-            &copy; {currentYear} Workify. All rights reserved.
+            &copy; {currentYear} JobWorld. All rights reserved.
           </p>
           <div className="mt-2 flex justify-center space-x-4 text-xs text-secondary-foreground">
             <span>Privacy Policy</span>
