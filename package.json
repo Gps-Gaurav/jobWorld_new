@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node node_backend/src/server.js",
-    "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend",
+    "build": "npm install && npm install --prefix React_frontend && npm run build --prefix React_frontend",
     "start": "node node_backend/src/server.js"
   },
   "author": "Gaurav Pratap Singh",
