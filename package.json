@@ -7,7 +7,7 @@
     "node": ">=18.x"
   },
   "scripts": {
-    "install-client": "cd React_frontend && npm install",
+    "install-client": "cd React_frontend && npm install --production=false",
     "build-client": "cd React_frontend && npm run build",
     "install-server": "cd node_backend && npm install",
     "build": "npm run install-client && npm run build-client && npm run install-server",

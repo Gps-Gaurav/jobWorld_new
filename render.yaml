@@ -2,8 +2,12 @@ services:
   - type: web
     name: jobworld
     env: node
-    buildCommand: npm run build
+    buildCommand: |
+      npm install --production=false
+      npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: false
