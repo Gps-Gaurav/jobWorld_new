@@ -1,7 +1,7 @@
 services:
   - type: web
     name: jobworld
-    env: node
+    runtime: node
     buildCommand: |
       npm install --production=false
       npm run build
@@ -10,4 +10,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: NPM_CONFIG_PRODUCTION
-        value: false
+        value: "false"
