@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.x"
+  },
   "scripts": {
-    "dev": "node node_backend/src/server.js",
-    "build": "npm install && npm install --prefix React_frontend && npm run build --prefix React_frontend",
-    "start": "node node_backend/src/server.js"
+    "install-client": "cd React_frontend && npm install",
+    "build-client": "cd React_frontend && npm run build",
+    "install-server": "cd node_backend && npm install",
+    "build": "npm run install-client && npm run build-client && npm run install-server",
+    "start": "cd node_backend && node src/server.js"
   },
   "author": "Gaurav Pratap Singh",
   "license": "ISC",
