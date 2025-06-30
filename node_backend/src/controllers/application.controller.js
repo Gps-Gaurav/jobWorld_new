@@ -1,18 +1,21 @@
+// 📦 Required imports
 import { Application } from "../models/application.model.js";
 import { Job } from "../models/job.model.js";
 import { asyncHandler } from "../utils.js/asyncHandler.utils.js";
 import { apiResponse } from "../utils.js/apiResponse.utils.js";
-import { apiError } from "../utils.js/apiError.utils.js"; // Ensure apiError is imported
+import { apiError } from "../utils.js/apiError.utils.js";
 
-//job apply krne k liye
+// ✅ Job ke liye apply karna
 const applyJob = asyncHandler(async (req, res) => {
     const userId = req.user?.id;
     const jobId = req.params?.id;
 
+    // 🛑 jobId na ho to error
     if (!jobId) {
         throw new apiError(404, "jobId is required");
     }
 
+    // 🔍 Check agar already applied hai to
     const existingApplication = await Application.findOne({
         job: jobId,
         applicant: userId,
@@ -21,29 +24,33 @@ const applyJob = asyncHandler(async (req, res) => {
         throw new apiError(400, "You have already applied for this job");
     }
 
+    // 📄 Job exist karta hai ya nahi
     const job = await Job.findById(jobId);
     if (!job) {
         throw new apiError(404, "Job not found");
     }
 
+    // 🆕 Application create karo
     const newApplication = await Application.create({
         job: jobId,
         applicant: userId,
     });
 
+    // 📌 Job ke andar application push karo
     await Job.findByIdAndUpdate(jobId, {
         $push: { applications: newApplication._id }
     });
 
-    
-    return res
-        .status(200)
-        .json(new apiResponse(200, newApplication, "Job applied successfully",))
-
+    return res.status(200).json(
+        new apiResponse(200, newApplication, "Job applied successfully")
+    );
 });
-// Get applied jobs
+
+// 📋 User ke sare applied jobs lana
 const getAppliedJobs = asyncHandler(async (req, res) => {
     const userId = req.user?._id;
+
+    // 🧾 Jobs fetch karo + populate job & company
     const appliedJobs = await Application.find({ applicant: userId })
         .sort({ createdAt: -1 })
         .populate({
@@ -61,29 +68,32 @@ const getAppliedJobs = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new apiResponse(200, appliedJobs));
 });
-// Get applicants for a particular job
+
+// 👥 Kisi particular job ke applicants laana
 const getApplicants = asyncHandler(async (req, res) => {
     const jobId = req.params.id;
-    // console.log("jobId", jobId);
+
     const job = await Job.findById(jobId).populate({
-        path: 'applications', // Correct path here
+        path: 'applications',
         options: { sort: { createdAt: -1 } },
         populate: {
-            path: 'applicant', // Ensure correct path for applicants
+            path: 'applicant',
         },
     });
-    // console.log("job is", job);
+
     if (!job || !job.applications.length) {
         throw new apiError(404, "No one has applied for this job");
     }
 
     return res.status(200).json(new apiResponse(200, job));
 });
-// Update application status
+
+// 🛠️ Application status update karna
 const updateStatus = asyncHandler(async (req, res) => {
-    const applicationId = req.params.id; // Fixed this line to access id properly
+    const applicationId = req.params.id;
     const { status } = req.body;
 
+    // ❗ Status required hai
     if (!status) {
         throw new apiError(400, "Status is required");
     }
@@ -93,12 +103,16 @@ const updateStatus = asyncHandler(async (req, res) => {
         throw new apiError(400, "Application not found");
     }
 
-    // Update the status
-    application.status = status.toLowerCase(); // Fixed method call
+    // 🔄 Status update karo
+    application.status = status.toLowerCase();
     await application.save();
 
-    return res.status(200).json(new apiResponse(200, application, "Application status updated successfully"));
+    return res.status(200).json(
+        new apiResponse(200, application, "Application status updated successfully")
+    );
 });
+
+// 📤 Export all controllers
 export {
     applyJob,
     getAppliedJobs,
