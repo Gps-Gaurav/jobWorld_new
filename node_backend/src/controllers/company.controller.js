@@ -1,3 +1,4 @@
+// 📦 Required Imports
 import { compare } from "bcrypt";
 import { Company } from "../models/company.model.js";
 import { apiError } from "../utils.js/apiError.utils.js";
@@ -5,69 +6,70 @@ import { apiResponse } from "../utils.js/apiResponse.utils.js";
 import { asyncHandler } from "../utils.js/asyncHandler.utils.js";
 import { uploadOnCloudinary } from "../utils.js/cloudinary.utils.js";
 import mongoose from "mongoose";
-import fs from 'fs';
+import fs from "fs";
 
-
+// 🏢 Company Register karna
 const registerCompany = asyncHandler(async (req, res) => {
     const { companyName, location, website, description } = req.body;
 
-
+    // ❌ Validation: companyName required hai
     if (!companyName) {
         throw new apiError(404, "companyName is required");
     }
-    let company = await Company.findOne({ companyName: companyName });
+
+    // 🔍 Check karo ki same name wali company already exist to nahi karti
+    let company = await Company.findOne({ companyName });
     if (company) {
         throw new apiError(401, `Company with ${companyName} name already exists! So try with another name`);
     }
-    // const logoLocalFilePath = req.files?.logo[0]?.path;
-    // const logo = await uploadOnCloudinary(logoLocalFilePath);
+
+    // ✅ Company create karo (logo skip kiya gaya abhi)
     company = await Company.create({
-        companyName: companyName,
-        description: description,
-        location: location,
-        website: website,
-        // logo: logo.secure_url || null,
+        companyName,
+        description,
+        location,
+        website,
         userId: req.user._id
-    })
+    });
+
     console.log("Created company is:", company);
-    return res
-        .status(200)
-        .json(
-            new apiResponse(200, company, "Company created successfully")
-        )
+
+    return res.status(200).json(
+        new apiResponse(200, company, "Company created successfully")
+    );
 });
+
+// 📋 Get all companies for current user
 const getCompany = asyncHandler(async (req, res) => {
     const companies = await Company.find({ userId: req.user?._id });
 
-    // Return empty array if no companies found, instead of throwing an error
     return res.status(200).json(
         new apiResponse(200, companies || [], "Companies retrieved successfully")
     );
 });
 
+// 🔍 Get company by ID
 const getCompanyById = asyncHandler(async (req, res) => {
     const company = await Company.findById(req.params.id);
     if (!company) {
         throw new apiError(404, "Company not found");
     }
-    return res
-        .status(200)
-        .json(
-            new apiResponse(200, company, "Company found successfully")
-        )
-})
-const updateCompany = asyncHandler(async (req, res) => {
-    //console.log("Update request body:", req.body);
-    // console.log("Update request files:", req.files);
 
+    return res.status(200).json(
+        new apiResponse(200, company, "Company found successfully")
+    );
+});
+
+// ✏️ Update company details
+const updateCompany = asyncHandler(async (req, res) => {
     const { companyName, description, website, location } = req.body;
 
-    // Validate company ID
+    // 🛑 Check karo ki company ID valid hai ya nahi
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         throw new apiError(400, "Invalid company ID");
     }
 
-    // Check if company exists before updating
+    // 🔍 Check karo ki company exist karti hai ya nahi
     const existingCompany = await Company.findById(req.params.id);
     if (!existingCompany) {
         throw new apiError(404, "Company not found");
@@ -77,6 +79,7 @@ const updateCompany = asyncHandler(async (req, res) => {
     let logo;
 
     try {
+        // ☁️ Logo upload karo agar diya gaya hai
         if (logoLocalFilePath) {
             try {
                 logo = await uploadOnCloudinary(logoLocalFilePath);
@@ -87,13 +90,14 @@ const updateCompany = asyncHandler(async (req, res) => {
                 console.error("Cloudinary upload error:", error);
                 throw new apiError(400, "Error uploading logo: " + error.message);
             } finally {
-                // Clean up the local file after upload
+                // 🧹 Local file ko delete karo
                 if (fs.existsSync(logoLocalFilePath)) {
                     fs.unlinkSync(logoLocalFilePath);
                 }
             }
         }
 
+        // 🔁 Update data prepare karo
         const updateData = {};
         if (companyName) updateData.companyName = companyName;
         if (description) updateData.description = description;
@@ -103,6 +107,7 @@ const updateCompany = asyncHandler(async (req, res) => {
 
         console.log("Update data:", updateData);
 
+        // 🛠️ Update karo
         const company = await Company.findByIdAndUpdate(
             req.params.id,
             { $set: updateData },
@@ -113,7 +118,7 @@ const updateCompany = asyncHandler(async (req, res) => {
             new apiResponse(200, company, "Company details updated successfully")
         );
     } catch (error) {
-        // Clean up the local file if it exists and there was an error
+        // ❌ Error aane par bhi local file clean karo
         if (logoLocalFilePath && fs.existsSync(logoLocalFilePath)) {
             fs.unlinkSync(logoLocalFilePath);
         }
@@ -121,9 +126,11 @@ const updateCompany = asyncHandler(async (req, res) => {
         throw error;
     }
 });
+
+// 📤 Export controller functions
 export {
     registerCompany,
     getCompany,
     getCompanyById,
     updateCompany,
-}
+};
