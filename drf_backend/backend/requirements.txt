@@ -1,0 +1,7 @@
+Django
+djangorestframework
+djongo
+pymongo
+python-decouple
+gunicorn
+whitenoise
