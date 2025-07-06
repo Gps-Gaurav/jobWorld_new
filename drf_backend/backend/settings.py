@@ -1,5 +1,6 @@
 from decouple import config
 from pathlib import Path
+import os
 
 # Debug and secret key
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -26,6 +27,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -36,7 +40,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler'
+}
+
+MIDDLEWARE.insert(1, 'api.middleware.RequestLoggingMiddleware')
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -78,7 +89,21 @@ DATABASES = {
         }
     }
 }
+# CORS config like Express.js
+CORS_ALLOWED_ORIGINS = [
+    "https://jobworld-new.onrender.com",
+    "http://localhost:4000",
+    "http://localhost:5173",
+]
 
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization']
+
+# Static files serve for React
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'frontend', 'dist', 'assets')]
+TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'frontend', 'dist')]
 # Email config
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
