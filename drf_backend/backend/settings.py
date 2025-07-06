@@ -91,9 +91,9 @@ DATABASES = {
 }
 # CORS config like Express.js
 CORS_ALLOWED_ORIGINS = [
-    "https://jobworld-new.onrender.com",
-    "http://localhost:4000",
     "http://localhost:5173",
+    "http://localhost:4000",
+    "https://jobworld-new.onrender.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
