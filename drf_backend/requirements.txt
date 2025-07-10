@@ -9,3 +9,4 @@ sqlparse
 django
 typing_extensions
 django-cors-headers
+pytz
