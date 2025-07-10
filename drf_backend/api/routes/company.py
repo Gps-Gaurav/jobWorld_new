@@ -1,6 +1,6 @@
 from django.urls import path
-from api.views.company_views import CompanyListView
+from api.views.company_view import CompanyView
 
 urlpatterns = [
-    path('', CompanyListView.as_view()),
+    path('', CompanyView.as_view(), name='company-endpoint'),
 ]

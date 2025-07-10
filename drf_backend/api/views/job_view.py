@@ -1,12 +1,13 @@
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-class CompanyView(APIView):
+class JobView(APIView):
     """
-    Ye Company endpoint ka base view hai.
+    Ye Job endpoint ka base view hai.
     Abhi basic GET response return karta hai.
     """
 
     def get(self, request):
-        return Response({"message": "Company endpoint working"}, status=status.HTTP_200_OK)
+        return Response({"message": "Job endpoint working"}, status=status.HTTP_200_OK)
