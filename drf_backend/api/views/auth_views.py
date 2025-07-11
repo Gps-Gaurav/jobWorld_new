@@ -14,7 +14,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import make_password
 from datetime import datetime
 from cloudinary.uploader import upload as upload_to_cloudinary  # Assuming you're using cloudinary SDK
-
 class RegisterView(APIView):
     def post(self, request):
         data = request.data
@@ -79,12 +78,59 @@ class LoginView(APIView):
         role = request.data.get('role')
 
         if not identifier or not password or not role:
-            return Response({'error': 'Email, password, and role are required'}, status=400)
+            return Response({'success': False, 'message': 'Email, password, and role are required'}, status=400)
 
         if role not in ['student', 'recruiter']:
-            return Response({'error': 'Invalid role'}, status=400)
+            return Response({'success': False, 'message': 'Invalid role'}, status=400)
 
-        # Match user by email/phone and role
+        user = users_collection.find_one({
+            "$and": [
+                {"$or": [{"email": identifier}, {"phoneNumber": identifier}]},
+                {"role": role}
+            ]
+        })
+
+        if not user or not bcrypt.checkpw(password.encode(), user['password'].encode()):
+            return Response({'success': False, 'message': 'Invalid credentials'}, status=401)
+
+        payload = {
+            'id': str(user['_id']),
+            'email': user['email'],
+            'role': user['role']
+        }
+
+        access = create_access_token(payload)
+        refresh = create_refresh_token(payload)
+
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'data': {
+                'accessToken': access,
+                'refreshToken': refresh,
+                'user': {
+                    'id': str(user['_id']),
+                    'email': user['email'],
+                    'role': user['role'],
+                    'fullName': user.get('fullName'),
+                    'phoneNumber': user.get('phoneNumber'),
+                    'profile': user.get('profile', {})
+                }
+            }
+        }, status=200)
+
+ 
+        identifier = request.data.get('identifier')
+        password = request.data.get('password')
+        role = request.data.get('role')
+
+        if not identifier or not password or not role:
+            return Response({'error': 'Email, password, and role are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if role not in ['student', 'recruiter']:
+            return Response({'error': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Match user by email or phoneNumber and role
         user = users_collection.find_one({
             "$and": [
                 {
@@ -98,7 +144,7 @@ class LoginView(APIView):
         })
 
         if not user or not bcrypt.checkpw(password.encode(), user['password'].encode()):
-            return Response({'error': 'Invalid credentials'}, status=401)
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
         payload = {
             'id': str(user['_id']),
@@ -106,12 +152,13 @@ class LoginView(APIView):
             'role': user['role']
         }
 
-        access = create_access_token(payload)
-        refresh = create_refresh_token(payload)
+        access_token = create_access_token(payload)
+        refresh_token = create_refresh_token(payload)
 
         return Response({
-            'access': access,
-            'refresh': refresh,
+            'message': 'Login successful',
+            'accessToken': access_token,
+            'refreshToken': refresh_token,
             'user': {
                 'id': str(user['_id']),
                 'email': user['email'],
@@ -120,4 +167,4 @@ class LoginView(APIView):
                 'phoneNumber': user.get('phoneNumber'),
                 'profile': user.get('profile', {})
             }
-        })
+        }, status=status.HTTP_200_OK)
