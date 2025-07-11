@@ -74,30 +74,40 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     def post(self, request):
-        email = request.data.get('email')
+        identifier = request.data.get('identifier')
         password = request.data.get('password')
+        role = request.data.get('role')
 
-        if not email or not password:
-            return Response({'error': 'Email and password required'}, status=400)
+        if not identifier or not password or not role:
+            return Response({'error': 'Email, password, and role are required'}, status=400)
 
-        user = users_collection.find_one({'email': email})
+        if role not in ['student', 'recruiter']:
+            return Response({'error': 'Invalid role'}, status=400)
+
+        # Match user by email/phone and role
+        user = users_collection.find_one({
+            "$and": [
+                {
+                    "$or": [
+                        {"email": identifier},
+                        {"phoneNumber": identifier}
+                    ]
+                },
+                {"role": role}
+            ]
+        })
+
         if not user or not bcrypt.checkpw(password.encode(), user['password'].encode()):
             return Response({'error': 'Invalid credentials'}, status=401)
 
-        payload = {'id': str(user['_id']), 'email': user['email']}
+        payload = {
+            'id': str(user['_id']),
+            'email': user['email'],
+            'role': user['role']
+        }
+
         access = create_access_token(payload)
         refresh = create_refresh_token(payload)
-
-        # ADD THIS BLOCK TO UPDATE refreshToken IN DB
-        users_collection.update_one(
-            {'_id': user['_id']},
-            {
-                '$set': {
-                    'refreshToken': refresh,
-                    'updatedAt': datetime.utcnow()
-                }
-            }
-        )
 
         return Response({
             'access': access,
@@ -106,7 +116,8 @@ class LoginView(APIView):
                 'id': str(user['_id']),
                 'email': user['email'],
                 'role': user['role'],
-                'fullName': user['fullName'],
+                'fullName': user.get('fullName'),
+                'phoneNumber': user.get('phoneNumber'),
                 'profile': user.get('profile', {})
             }
         })
