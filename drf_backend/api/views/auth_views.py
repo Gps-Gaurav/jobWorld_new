@@ -3,50 +3,74 @@ import bcrypt
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from api.db import users_collection
 import jwt
 from decouple import config
 from bson import ObjectId
 from api.utils.jwt_tokens import create_access_token, create_refresh_token
 from api.utils import jwt_tokens
-import cloudinary.uploader
 from django.views.decorators.csrf import csrf_exempt
-from bson import ObjectId
-from api.db import users_collection  # your pymongo connection
 from django.contrib.auth.hashers import make_password
+from datetime import datetime
+from cloudinary.uploader import upload as upload_to_cloudinary  # Assuming you're using cloudinary SDK
 
 class RegisterView(APIView):
     def post(self, request):
         data = request.data
+        required = ['fullName', 'email', 'password', 'phoneNumber', 'role']
 
-        # Get fields
-        name = data.get("name")
-        email = data.get("email")
-        password = make_password(data.get("password"))  # hashed password
-        role = data.get("role", "student")  # default: student
-        photo_file = data.get("photo")
+        for field in required:
+            if field not in data:
+                return Response({'error': f"{field} is required"}, status=400)
 
-        # Cloudinary upload if photo provided
-        photo_url = ""
-        if photo_file:
-            upload_result = cloudinary.uploader.upload(photo_file)
-            photo_url = upload_result["secure_url"]
+        # Check if user already exists
+        if users_collection.find_one({'$or': [{'email': data['email']}, {'phoneNumber': data['phoneNumber']}] }):
+            return Response({'error': 'User already exists'}, status=400)
 
-        # Check if user exists
-        if users_collection.find_one({"email": email}):
-            return Response({"error": "Email already registered"}, status=400)
+        # Hash the password
+        hashed_pw = bcrypt.hashpw(data['password'].encode(), bcrypt.gensalt()).decode()
 
-        # Insert into Mongo
-        user_data = {
-            "name": name,
-            "email": email,
-            "password": password,
-            "role": role,
-            "photo": photo_url,
+        # Upload avatar (optional)
+        avatar_url = ""
+        if 'avatar' in request.FILES:
+            cloud_result = upload_to_cloudinary(request.FILES['avatar'])
+            avatar_url = cloud_result.get('secure_url', '')
+
+        # Final user object
+        user = {
+            "fullName": data['fullName'],
+            "email": data['email'].lower(),
+            "phoneNumber": data['phoneNumber'],
+            "password": hashed_pw,
+            "role": data['role'],
+            "profile": {
+                "bio": "",
+                "avatar": avatar_url,
+                "coverImage": None,
+                "skills": [],
+                "resume": "",
+                "location": {},
+                "education": [],
+                "experience": [],
+                "languages": [],
+                "certifications": [],
+                "socialLinks": {},
+                "interests": [],
+                "preferredJobTypes": [],
+                "expectedSalary": {}
+            },
+            "refreshToken": "",
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow(),
+            "__v": 0
         }
-        users_collection.insert_one(user_data)
 
-        return Response({"msg": "User registered successfully!"}, status=201)
+        inserted = users_collection.insert_one(user)
+        user['_id'] = str(inserted.inserted_id)
+
+        return Response({"message": "User registered", "user": user}, status=201)
+
 
 class LoginView(APIView):
     def post(self, request):
@@ -64,16 +88,25 @@ class LoginView(APIView):
         access = create_access_token(payload)
         refresh = create_refresh_token(payload)
 
-        # Include role and photo if available
-        user_data = {
-            'id': str(user['_id']),
-            'email': user['email'],
-            'role': user.get('role', 'student'),  # default fallback
-            'photo': user.get('photo', '')        # fallback if no photo
-        }
+        # ADD THIS BLOCK TO UPDATE refreshToken IN DB
+        users_collection.update_one(
+            {'_id': user['_id']},
+            {
+                '$set': {
+                    'refreshToken': refresh,
+                    'updatedAt': datetime.utcnow()
+                }
+            }
+        )
 
         return Response({
             'access': access,
             'refresh': refresh,
-            'user': user_data
+            'user': {
+                'id': str(user['_id']),
+                'email': user['email'],
+                'role': user['role'],
+                'fullName': user['fullName'],
+                'profile': user.get('profile', {})
+            }
         })
