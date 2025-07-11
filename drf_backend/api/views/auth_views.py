@@ -8,6 +8,7 @@ import jwt
 from decouple import config
 from bson import ObjectId
 from api.utils.jwt_tokens import create_access_token, create_refresh_token
+from api.utils import jwt_tokens
 
 
 class RegisterView(APIView):
