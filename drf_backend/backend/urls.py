@@ -4,7 +4,8 @@ from core.views import home
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home, name='home'),  # ✅ keep only this
+    path('', home, name='home'),
+    path("api/", include("api.urls")),
     path('api/v1/user/', include('api.routes.user')),
     path('api/v1/company/', include('api.routes.company')),
     path('api/v1/job/', include('api.routes.job')),

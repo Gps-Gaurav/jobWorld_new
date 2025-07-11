@@ -100,14 +100,7 @@ TEMPLATES = [
 # ------------------------------
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'djongo',
-        'NAME': config('MONGO_DB_NAME'),
-        'ENFORCE_SCHEMA': False,
-        'CLIENT': {
-            'host': config('MONGODB_URL'),
-        }
-    }
+    
 }
 
 # ------------------------------
