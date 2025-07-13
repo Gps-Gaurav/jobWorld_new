@@ -3,6 +3,7 @@ import bcrypt
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import permission_classes
 
 from api.db import users_collection
 import jwt
@@ -13,7 +14,9 @@ from api.utils import jwt_tokens
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import make_password
 from datetime import datetime
-from cloudinary.uploader import upload as upload_to_cloudinary  # Assuming you're using cloudinary SDK
+from cloudinary.uploader import upload as upload_to_cloudinary 
+from rest_framework.permissions import AllowAny, IsAuthenticated
+@permission_classes([AllowAny])
 class RegisterView(APIView):
     def post(self, request):
         data = request.data
@@ -70,7 +73,7 @@ class RegisterView(APIView):
 
         return Response({"message": "User registered", "user": user}, status=201)
 
-
+@permission_classes([AllowAny])
 class LoginView(APIView):
     def post(self, request):
         identifier = request.data.get('identifier')
