@@ -118,53 +118,35 @@ class LoginView(APIView):
                 }
             }
         }, status=200)
+        
+        
+class LogoutView(APIView):
+    def post(self, request):
+        # logout logic
+        return Response({"message": "Logged out successfully"}, status=200)
 
- 
-        identifier = request.data.get('identifier')
-        password = request.data.get('password')
-        role = request.data.get('role')
 
-        if not identifier or not password or not role:
-            return Response({'error': 'Email, password, and role are required'}, status=status.HTTP_400_BAD_REQUEST)
+class RefreshTokenView(APIView):
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
 
-        if role not in ['student', 'recruiter']:
-            return Response({'error': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
+        if not refresh_token:
+            return Response({"error": "Refresh token required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Match user by email or phoneNumber and role
-        user = users_collection.find_one({
-            "$and": [
-                {
-                    "$or": [
-                        {"email": identifier},
-                        {"phoneNumber": identifier}
-                    ]
-                },
-                {"role": role}
-            ]
-        })
+        try:
+            payload = jwt.decode(
+                refresh_token,
+                config("REFRESH_TOKEN_SECRET"),
+                algorithms=["HS256"]
+            )
+            user_id = payload.get("user_id")
 
-        if not user or not bcrypt.checkpw(password.encode(), user['password'].encode()):
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Generate new access token
+            access_token = create_access_token(user_id)
 
-        payload = {
-            'id': str(user['_id']),
-            'email': user['email'],
-            'role': user['role']
-        }
+            return Response({"access": access_token}, status=status.HTTP_200_OK)
 
-        access_token = create_access_token(payload)
-        refresh_token = create_refresh_token(payload)
-
-        return Response({
-            'message': 'Login successful',
-            'accessToken': access_token,
-            'refreshToken': refresh_token,
-            'user': {
-                'id': str(user['_id']),
-                'email': user['email'],
-                'role': user['role'],
-                'fullName': user.get('fullName'),
-                'phoneNumber': user.get('phoneNumber'),
-                'profile': user.get('profile', {})
-            }
-        }, status=status.HTTP_200_OK)
+        except jwt.ExpiredSignatureError:
+            return Response({"error": "Refresh token expired."}, status=status.HTTP_401_UNAUTHORIZED)
+        except jwt.InvalidTokenError:
+            return Response({"error": "Invalid refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
