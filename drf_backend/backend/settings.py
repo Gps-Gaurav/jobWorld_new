@@ -72,7 +72,14 @@ MIDDLEWARE = [
 # ------------------------------
 
 REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler'
+    'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BaseAuthentication',
+        'api.utils.jwt_auth.JWTAuthentication',  #  Custom JWT auth agar use kar rahe ho
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Har route protected by default
+    ]
 }
 
 # ------------------------------
