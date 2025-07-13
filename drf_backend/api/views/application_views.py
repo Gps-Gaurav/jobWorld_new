@@ -6,7 +6,7 @@ from api.db import applications_collection, jobs_collection
 from api.utils.jwt_auth import get_user_from_request  # Assume this gets user from JWT
 
 
-# ✅ Apply to a job
+#  Apply to a job
 class ApplyJobView(APIView):
     def post(self, request, job_id):
         user = get_user_from_request(request)
@@ -42,7 +42,7 @@ class ApplyJobView(APIView):
         return Response({"message": "Applied successfully"}, status=200)
 
 
-# 📋 Get all jobs applied by a user
+# Get all jobs applied by a user
 class GetAppliedJobsView(APIView):
     def get(self, request):
         user = get_user_from_request(request)
@@ -77,7 +77,7 @@ class GetApplicantsView(APIView):
         return Response(applicants, status=200)
 
 
-# 🛠️ Update application status
+# Update application status
 class UpdateApplicationStatusView(APIView):
     def patch(self, request, app_id):
         status_new = request.data.get("status")

@@ -1,6 +1,9 @@
 from django.urls import path
-from api.views.dashboard_view import DashboardView
+from api.views import dashboard_view
 
 urlpatterns = [
-    path('', DashboardView.as_view(), name='dashboard-endpoint'),
+    path('user-stats/', dashboard_view.get_user_stats),
+    path('application-trends/', dashboard_view.get_application_trends),
+    path('user-skills/', dashboard_view.get_user_skills),
+    path('global-stats/', dashboard_view.get_global_stats),
 ]
