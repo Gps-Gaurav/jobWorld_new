@@ -3,15 +3,19 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from bson import ObjectId
-from api.db import jobs_collection, companies_collection
-from api.db import users_collection  # If needed for auth
-
+from api.db import jobs_collection, companies_collection, users_collection
 from datetime import datetime
+from django.http import JsonResponse
 import json
 from bson import json_util
 
 
-#  Job Post (Protected)
+# Helper: Serialize BSON (ObjectId, datetime) safely
+def bson_to_json_response(data, status_code=200):
+    return JsonResponse(json.loads(json_util.dumps(data)), safe=False, status=status_code)
+
+
+# 1️⃣ Job Post (Protected)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def post_job(request):
@@ -50,14 +54,13 @@ def post_job(request):
         result = jobs_collection.insert_one(job)
         job['_id'] = result.inserted_id
 
-        return Response(json.loads(json_util.dumps(job)), status=status.HTTP_201_CREATED)
-
+        return bson_to_json_response(job, status_code=201)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-#  Get all jobs (with optional keyword search)
+# 2️⃣ Get all jobs (with optional keyword search)
 @api_view(['GET'])
 def get_all_jobs(request):
     try:
@@ -82,13 +85,13 @@ def get_all_jobs(request):
         if not jobs:
             return Response({"error": "No jobs found"}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response(jobs, status=status.HTTP_200_OK)
+        return bson_to_json_response(jobs, status_code=200)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-#  Get job by ID
+# 3️⃣ Get job by ID
 @api_view(['GET'])
 def get_job_by_id(request, job_id):
     try:
@@ -102,13 +105,13 @@ def get_job_by_id(request, job_id):
         company = companies_collection.find_one({"_id": job["company"]})
         job["company"] = company
 
-        return Response(job, status=status.HTTP_200_OK)
+        return bson_to_json_response(job, status_code=200)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-#  Get all jobs created by the current admin
+# 4️⃣ Get all jobs created by current admin
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_jobs_by_admin(request):
@@ -123,13 +126,13 @@ def get_jobs_by_admin(request):
         if not jobs:
             return Response({"error": "No jobs found"}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response(jobs, status=status.HTTP_200_OK)
+        return bson_to_json_response(jobs, status_code=200)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-#  Update job
+# 5️⃣ Update job
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_job(request, job_id):
@@ -173,13 +176,13 @@ def update_job(request, job_id):
         if not result:
             return Response({"error": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response(result, status=status.HTTP_200_OK)
+        return bson_to_json_response(result, status_code=200)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-#  Delete job
+# 6️⃣ Delete job
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_job(request, job_id):
@@ -191,7 +194,7 @@ def delete_job(request, job_id):
         if not result:
             return Response({"error": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response(result, status=status.HTTP_200_OK)
+        return bson_to_json_response(result, status_code=200)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
