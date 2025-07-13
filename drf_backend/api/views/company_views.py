@@ -7,47 +7,45 @@ from api.utils.jwt_auth import get_user_from_request
 from api.utils.bson_parser import convert_objectid
 from api.utils.cloudinary_upload import upload_to_cloudinary  # Custom helper
 import os
+from datetime import datetime
 
 
 #  Register company
 class RegisterCompanyView(APIView):
-    def post(self, request):
-        user = get_user_from_request(request)
-        
-        print("Authenticated User:", user)  # Add this line
-
-        if not user:
-          return Response({"error": "Unauthorized or Invalid Token"}, status=401)
-      
+     def post(self, request):
         data = request.data
-        company_name = data.get("companyName")
+        required = ["companyName", "location"]
 
-        if not company_name:
-            return Response({"error": "companyName is required"}, status=400)
+        for field in required:
+            if field not in data:
+                return Response({"error": f"{field} is required"}, status=400)
 
-        # Check if exists
-        if companies_collection.find_one({"companyName": company_name}):
+        if companies_collection.find_one({"companyName": data["companyName"]}):
             return Response({"error": "Company with same name exists"}, status=400)
 
-        company_doc = {
-            "companyName": company_name,
+        user = get_user_from_request(request)
+
+        company = {
+            "companyName": data["companyName"],
             "description": data.get("description", ""),
-            "location": data.get("location", ""),
             "website": data.get("website", ""),
-            "userId": ObjectId(user["_id"]),
+            "location": data["location"],
+            "logo": data.get("logo", ""),
+            "userId": user["_id"],
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
         }
 
-        companies_collection.insert_one(company_doc)
+        inserted = companies_collection.insert_one(company)  # ✅ FIXED
+
         return Response({
-         "message": "Company registered",
+            "message": "Company registered",
             "company": {
-               "_id": str(inserted.inserted_id),
-               "companyName": data['companyName'],
-               "location": data['location']
-         }
+                "_id": str(inserted.inserted_id),  # ✅ No more NameError
+                "companyName": company["companyName"],
+                "location": company["location"]
+            }
         }, status=201)
-
-
 #  Get all companies for current user
 class GetCompanyView(APIView):
     def get(self, request):
