@@ -3,8 +3,6 @@
 from django.urls import path, include
 
 urlpatterns = [
-    # Auth endpoints (not versioned)
-    path('auth/', include('api.auth_urls')),
 
     # Versioned API v1
     path('v1/', include([
