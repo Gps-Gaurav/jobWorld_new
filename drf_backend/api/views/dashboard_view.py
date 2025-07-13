@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 @permission_classes([IsAuthenticated])
 def get_user_stats(request):
     try:
-        user_id = request.user['_id']
+        user_id = request.user.id
 
         total_applied_jobs = applications_collection.count_documents({"applicant": ObjectId(user_id)})
         total_interviews = applications_collection.count_documents({"applicant": ObjectId(user_id), "status": "interview"})
@@ -52,7 +52,7 @@ def get_user_stats(request):
 @permission_classes([IsAuthenticated])
 def get_application_trends(request):
     try:
-        user_id = request.user['_id']
+        user_id = request.user.id
         six_months_ago = datetime.utcnow() - timedelta(days=180)
 
         pipeline = [
@@ -93,7 +93,7 @@ def get_application_trends(request):
 @permission_classes([IsAuthenticated])
 def get_user_skills(request):
     try:
-        user_id = request.user['_id']
+        user_id = request.user.id
         user = users_collection.find_one({"_id": ObjectId(user_id)})
 
         profile = user.get("profile", {})

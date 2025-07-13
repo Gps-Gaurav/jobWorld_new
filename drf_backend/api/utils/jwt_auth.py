@@ -1,18 +1,19 @@
 
 import jwt
+from decouple import config
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from decouple import config
 from bson import ObjectId
 from api.db import users_collection
 
 
+from api.utils.mongo_user import MongoUser  # Import your wrapper
+
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
-        auth_header = request.headers.get('Authorization')
-
+        auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            return None  # Means DRF will continue to other authenticators if any
+            return None
 
         token = auth_header.split(" ")[1]
 
@@ -23,18 +24,15 @@ class JWTAuthentication(BaseAuthentication):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token")
 
-        user_id = payload.get("id")  # or "user_id" depending on what you encoded
+        user_id = payload.get("id")
         if not user_id:
-            raise AuthenticationFailed("Invalid payload: missing user_id")
+            raise AuthenticationFailed("Invalid payload")
 
-        user = users_collection.find_one({"_id": ObjectId(user_id)})
-        if not user:
+        user_dict = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user_dict:
             raise AuthenticationFailed("User not found")
 
-        # DRF requires returning (user, auth_token)
-        # You can return the full user dict (or a custom wrapper)
-        return (user, token)
-
+        return (MongoUser(user_dict), token)  #  Wrap dict in MongoUser class
 def get_user_from_request(request):
     auth = request.headers.get("Authorization", None)
     if not auth or not auth.startswith("Bearer "):
