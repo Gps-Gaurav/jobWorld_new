@@ -7,6 +7,8 @@ from api.db import jobs_collection, companies_collection
 from api.db import users_collection  # If needed for auth
 
 from datetime import datetime
+import json
+from bson import json_util
 
 
 #  Job Post (Protected)
@@ -48,7 +50,8 @@ def post_job(request):
         result = jobs_collection.insert_one(job)
         job['_id'] = result.inserted_id
 
-        return Response(job, status=status.HTTP_201_CREATED)
+        return Response(json.loads(json_util.dumps(job)), status=status.HTTP_201_CREATED)
+
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
