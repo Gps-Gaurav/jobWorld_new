@@ -38,7 +38,14 @@ class RegisterCompanyView(APIView):
         }
 
         companies_collection.insert_one(company_doc)
-        return Response({"message": "Company registered"}, status=201)
+        return Response({
+         "message": "Company registered",
+            "company": {
+               "_id": str(inserted.inserted_id),
+               "companyName": data['companyName'],
+               "location": data['location']
+         }
+        }, status=201)
 
 
 #  Get all companies for current user

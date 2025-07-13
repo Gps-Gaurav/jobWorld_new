@@ -33,6 +33,8 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed("User not found")
 
         return (MongoUser(user_dict), token)  #  Wrap dict in MongoUser class
+
+
 def get_user_from_request(request):
     auth = request.headers.get("Authorization", None)
     if not auth or not auth.startswith("Bearer "):
@@ -41,6 +43,7 @@ def get_user_from_request(request):
     token = auth.split(" ")[1]
 
     payload = jwt.decode(token, config("ACCESS_TOKEN_SECRET"), algorithms=["HS256"])
+    
     return {
-        "_id": payload["user_id"]
+        "_id": payload["id"]  # 👈 changed from 'user_id' to 'id'
     }

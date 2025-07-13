@@ -15,7 +15,7 @@ from datetime import datetime
 def post_job(request):
     try:
         data = request.data
-        user_id = request.user['_id']
+        user_id = request.user.id
 
         required_fields = [
             'title', 'description', 'requirements', 'salary',
@@ -110,7 +110,7 @@ def get_job_by_id(request, job_id):
 @permission_classes([IsAuthenticated])
 def get_jobs_by_admin(request):
     try:
-        admin_id = request.user['_id']
+        admin_id = request.user.id
         jobs = list(jobs_collection.find({"created_by": ObjectId(admin_id)}))
 
         for job in jobs:
