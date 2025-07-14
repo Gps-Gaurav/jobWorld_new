@@ -1,9 +1,11 @@
 
 import jwt
 from rest_framework import permissions
+from rest_framework.permissions import BasePermission
 from decouple import config
 from api.db import users_collection
 from bson import ObjectId
+from api.utils.jwt_auth import get_user_from_request
 
 class IsAuthenticatedWithJWT(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -26,3 +28,13 @@ class IsAuthenticatedWithJWT(permissions.BasePermission):
 
         except (jwt.ExpiredSignatureError, jwt.DecodeError):
             return False
+        
+
+class IsAdminOrRecruiter(BasePermission):
+    """
+    Allows access only to users with role 'admin' or 'recruiter'.
+    """
+
+    def has_permission(self, request, view):
+        user = get_user_from_request(request)
+        return user and user.get("role") in ["admin", "recruiter"]

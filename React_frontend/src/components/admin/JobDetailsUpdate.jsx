@@ -19,6 +19,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Label } from "../ui/label";
 
+
+
 // Zod Schema for Validation
 const jobUpdateSchema = z.object({
     title: z.string().min(3, "Title must be at least 3 characters long"),

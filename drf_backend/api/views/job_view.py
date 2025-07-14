@@ -8,6 +8,7 @@ from datetime import datetime
 from django.http import JsonResponse
 import json
 from bson import json_util
+from api.permissions import IsAdminOrRecruiter
 
 
 # Helper: Serialize BSON (ObjectId, datetime) safely
@@ -15,9 +16,60 @@ def bson_to_json_response(data, status_code=200):
     return JsonResponse(json.loads(json_util.dumps(data)), safe=False, status=status_code)
 
 
-# 1️⃣ Job Post (Protected)
+# Get all jobs (with optional keyword search)
+@api_view(['GET'])
+def get_all_jobs(request):
+    try:
+        keyword = request.query_params.get('keyword', '')
+
+        query = {
+            "$or": [
+                {"title": {"$regex": keyword, "$options": "i"}},
+                {"description": {"$regex": keyword, "$options": "i"}}
+            ]
+        } if keyword else {}
+
+        jobs = list(jobs_collection.find(query).sort("createdAt", -1))
+
+        for job in jobs:
+            company = companies_collection.find_one(
+                {"_id": job["company"]},
+                {"companyName": 1, "description": 1, "website": 1, "location": 1, "logo": 1}
+            )
+            job["company"] = company
+
+        if not jobs:
+            return Response({"error": "No jobs found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return bson_to_json_response(jobs, status_code=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+#  Get job by ID
+@api_view(['GET'])
+def get_job_by_id(request, job_id):
+    try:
+        if not ObjectId.is_valid(job_id):
+            return Response({"error": "Invalid Job ID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        job = jobs_collection.find_one({"_id": ObjectId(job_id)})
+        if not job:
+            return Response({"error": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        company = companies_collection.find_one({"_id": job["company"]})
+        job["company"] = company
+
+        return bson_to_json_response(job, status_code=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Get all jobs created by current admin
+
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrRecruiter])
 def post_job(request):
     try:
         data = request.data
@@ -59,61 +111,9 @@ def post_job(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# 2️⃣ Get all jobs (with optional keyword search)
+#  Get all jobs by admin
 @api_view(['GET'])
-def get_all_jobs(request):
-    try:
-        keyword = request.query_params.get('keyword', '')
-
-        query = {
-            "$or": [
-                {"title": {"$regex": keyword, "$options": "i"}},
-                {"description": {"$regex": keyword, "$options": "i"}}
-            ]
-        } if keyword else {}
-
-        jobs = list(jobs_collection.find(query).sort("createdAt", -1))
-
-        for job in jobs:
-            company = companies_collection.find_one(
-                {"_id": job["company"]},
-                {"companyName": 1, "description": 1, "website": 1, "location": 1, "logo": 1}
-            )
-            job["company"] = company
-
-        if not jobs:
-            return Response({"error": "No jobs found"}, status=status.HTTP_404_NOT_FOUND)
-
-        return bson_to_json_response(jobs, status_code=200)
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# 3️⃣ Get job by ID
-@api_view(['GET'])
-def get_job_by_id(request, job_id):
-    try:
-        if not ObjectId.is_valid(job_id):
-            return Response({"error": "Invalid Job ID"}, status=status.HTTP_400_BAD_REQUEST)
-
-        job = jobs_collection.find_one({"_id": ObjectId(job_id)})
-        if not job:
-            return Response({"error": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        company = companies_collection.find_one({"_id": job["company"]})
-        job["company"] = company
-
-        return bson_to_json_response(job, status_code=200)
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# 4️⃣ Get all jobs created by current admin
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrRecruiter]) 
 def get_jobs_by_admin(request):
     try:
         admin_id = request.user.id
@@ -130,11 +130,9 @@ def get_jobs_by_admin(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 # 5️⃣ Update job
 @api_view(['PUT', 'PATCH'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrRecruiter])
 def update_job(request, job_id):
     try:
         if not ObjectId.is_valid(job_id):
@@ -184,7 +182,7 @@ def update_job(request, job_id):
 
 # 6️⃣ Delete job
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrRecruiter])
 def delete_job(request, job_id):
     try:
         if not ObjectId.is_valid(job_id):

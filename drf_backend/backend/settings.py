@@ -129,7 +129,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization']
-APPEND_SLASH = False
+APPEND_SLASH = True
+
 # ------------------------------
 # Static Files (React ke build assets serve karne ke liye)
 # ------------------------------

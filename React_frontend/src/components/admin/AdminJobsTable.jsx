@@ -35,6 +35,7 @@ import axios from 'axios';
 const API_END_POINT = import.meta.env.VITE_API_END_POINT;
 
 const AdminJobsTable = () => {
+    console.log(`${API_END_POINT}/job/getJobByAdmin`);
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { theme } = useTheme();
