@@ -11,11 +11,14 @@ from decouple import config
 from bson import ObjectId
 from api.utils.jwt_tokens import create_access_token, create_refresh_token
 from api.utils import jwt_tokens
+from api.utils.jwt_auth import get_user_from_request
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import make_password
 from datetime import datetime
 from cloudinary.uploader import upload as upload_to_cloudinary 
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
+
 @permission_classes([AllowAny])
 class RegisterView(APIView):
     def post(self, request):
@@ -86,6 +89,7 @@ class LoginView(APIView):
         if role not in ['student', 'recruiter']:
             return Response({'success': False, 'message': 'Invalid role'}, status=400)
 
+        #  First get user
         user = users_collection.find_one({
             "$and": [
                 {"$or": [{"email": identifier}, {"phoneNumber": identifier}]},
@@ -96,6 +100,7 @@ class LoginView(APIView):
         if not user or not bcrypt.checkpw(password.encode(), user['password'].encode()):
             return Response({'success': False, 'message': 'Invalid credentials'}, status=401)
 
+        #  Create payload and tokens
         payload = {
             'id': str(user['_id']),
             'email': user['email'],
@@ -104,6 +109,12 @@ class LoginView(APIView):
 
         access = create_access_token(payload)
         refresh = create_refresh_token(payload)
+
+        #  Then update refresh token
+        users_collection.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"refreshToken": refresh}}
+        )
 
         return Response({
             'success': True,
@@ -121,12 +132,27 @@ class LoginView(APIView):
                 }
             }
         }, status=200)
-        
-        
+       
 class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
-        # logout logic
-        return Response({"message": "Logged out successfully"}, status=200)
+        try:
+            user_id = request.user.get("id") if isinstance(request.user, dict) else request.user.id
+
+            # Clear token from DB
+            users_collection.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$unset": {"refreshToken": "", "accessToken": ""}}  # optional
+            )
+
+            return Response({
+                "success": True,
+                "message": "Logged out successfully"
+            }, status=200)
+
+        except Exception as e:
+            return Response({"success": False, "error": str(e)}, status=500)
+    permission_classes = [IsAuthenticated]
 
 
 class RefreshTokenView(APIView):
