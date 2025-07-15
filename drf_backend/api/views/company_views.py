@@ -8,10 +8,13 @@ from api.utils.bson_parser import convert_objectid
 from api.utils.cloudinary_upload import upload_to_cloudinary  # Custom helper
 import os
 from datetime import datetime
+from api.permissions import IsAuthenticatedWithJWT, IsAdminOrRecruiter
+from rest_framework.decorators import permission_classes
 
 
 #  Register company
 class RegisterCompanyView(APIView):
+     @permission_classes([IsAuthenticatedWithJWT, IsAdminOrRecruiter])
      def post(self, request):
         data = request.data
         required = ["companyName", "location"]
@@ -47,15 +50,32 @@ class RegisterCompanyView(APIView):
             }
         }, status=201)
 #  Get all companies for current user
+
 class GetCompanyView(APIView):
+    permission_classes = [IsAuthenticatedWithJWT, IsAdminOrRecruiter]
+
     def get(self, request):
         user = get_user_from_request(request)
-        companies = list(companies_collection.find({"userId": ObjectId(user["_id"])}))
+        print("👤 User:", user)
+
+        user_id = user.get("_id")
+
+        # Handle both string and ObjectId in DB
+        companies = list(companies_collection.find({
+            "$or": [
+                {"userId": user_id},
+                {"userId": ObjectId(user_id)} if ObjectId.is_valid(user_id) else {"_id": None}
+            ]
+        }))
+        print("🏢 Companies:", companies)
+
         return Response(convert_objectid(companies), status=200)
 
 
 #  Get single company
+
 class GetCompanyByIdView(APIView):
+    @permission_classes([IsAuthenticatedWithJWT, IsAdminOrRecruiter])
     def get(self, request, company_id):
         company = companies_collection.find_one({"_id": ObjectId(company_id)})
         if not company:
@@ -64,7 +84,9 @@ class GetCompanyByIdView(APIView):
 
 
 # Update company with optional logo upload
+
 class UpdateCompanyView(APIView):
+    @permission_classes([IsAuthenticatedWithJWT, IsAdminOrRecruiter])
     def put(self, request, company_id):
         user = get_user_from_request(request)
         data = request.data
