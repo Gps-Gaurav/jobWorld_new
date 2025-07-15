@@ -41,8 +41,10 @@ def get_all_jobs(request):
 
         return Response({
             "statusCode": 200,
+            "success": True,
             "data": convert_objectid(jobs)
         }, status=status.HTTP_200_OK)
+        
 
     except Exception as e:
         return Response({
@@ -74,6 +76,7 @@ def get_job_by_id(request, job_id):
         job["company"] = company
 
         return Response({
+            "success": True,
             "statusCode": 200,
             "data": convert_objectid(job)
         }, status=status.HTTP_200_OK)
