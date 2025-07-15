@@ -9,6 +9,7 @@ from django.http import JsonResponse
 import json
 from bson import json_util
 from api.permissions import IsAdminOrRecruiter
+from api.utils.bson_parser import convert_objectid
 
 
 # Helper: Serialize BSON (ObjectId, datetime) safely
@@ -38,33 +39,50 @@ def get_all_jobs(request):
             )
             job["company"] = company
 
-        if not jobs:
-            return Response({"error": "No jobs found"}, status=status.HTTP_404_NOT_FOUND)
-
-        return bson_to_json_response(jobs, status_code=200)
+        return Response({
+            "statusCode": 200,
+            "data": convert_objectid(jobs)
+        }, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "statusCode": 500,
+            "error": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
 
 #  Get job by ID
 @api_view(['GET'])
+@api_view(['GET'])
 def get_job_by_id(request, job_id):
     try:
         if not ObjectId.is_valid(job_id):
-            return Response({"error": "Invalid Job ID"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "statusCode": 400,
+                "error": "Invalid Job ID"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         job = jobs_collection.find_one({"_id": ObjectId(job_id)})
         if not job:
-            return Response({"error": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                "statusCode": 404,
+                "error": "Job not found"
+            }, status=status.HTTP_404_NOT_FOUND)
 
         company = companies_collection.find_one({"_id": job["company"]})
         job["company"] = company
 
-        return bson_to_json_response(job, status_code=200)
+        return Response({
+            "statusCode": 200,
+            "data": convert_objectid(job)
+        }, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "statusCode": 500,
+            "error": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Get all jobs created by current admin
 
