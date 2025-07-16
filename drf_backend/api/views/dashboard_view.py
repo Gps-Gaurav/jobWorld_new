@@ -35,6 +35,7 @@ def get_user_stats(request):
         if user.get("email"): profile_score += 10
 
         return Response({
+            "success": True,
             "totalAppliedJobs": total_applied_jobs,
             "totalInterviews": total_interviews,
             "totalPending": total_pending,
@@ -86,7 +87,7 @@ def get_application_trends(request):
         return Response(formatted, status=status.HTTP_200_OK)
     
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": str(e),"success": True}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -103,7 +104,7 @@ def get_user_skills(request):
         return Response(skills_data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": str(e),"success": True}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -119,6 +120,7 @@ def get_global_stats(request):
         average_score = round(total_score / total_users, 2) if total_users else 0
 
         return Response({
+            "success": True,
             "totalJobs": total_jobs,
             "totalUsers": total_users,
             "totalApplications": total_applications,

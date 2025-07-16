@@ -4,42 +4,47 @@ from rest_framework import status
 from bson import ObjectId
 from api.db import applications_collection, jobs_collection
 from api.utils.jwt_auth import get_user_from_request  # Assume this gets user from JWT
+from core.response import error_response, success_response
 
-
-#  Apply to a job
 class ApplyJobView(APIView):
     def post(self, request, job_id):
-        user = get_user_from_request(request)
-        user_id = user["_id"]
+        try:
+            user = get_user_from_request(request)
+            user_id = user["_id"]
 
-        # Check already applied
-        existing = applications_collection.find_one({
-            "job": ObjectId(job_id),
-            "applicant": ObjectId(user_id)
-        })
+            # 1. Already applied check
+            existing = applications_collection.find_one({
+                "job": ObjectId(job_id),
+                "applicant": ObjectId(user_id)
+            })
 
-        if existing:
-            return Response({"error": "Already applied"}, status=400)
+            if existing:
+                return error_response("Already applied", status=400)
 
-        job = jobs_collection.find_one({"_id": ObjectId(job_id)})
-        if not job:
-            return Response({"error": "Job not found"}, status=404)
+            # 2. Job existence check
+            job = jobs_collection.find_one({"_id": ObjectId(job_id)})
+            if not job:
+                return error_response("Job not found", status=404)
 
-        application = {
-            "job": ObjectId(job_id),
-            "applicant": ObjectId(user_id),
-            "status": "pending"
-        }
+            # 3. Create application
+            application = {
+                "job": ObjectId(job_id),
+                "applicant": ObjectId(user_id),
+                "status": "pending"
+            }
 
-        result = applications_collection.insert_one(application)
+            result = applications_collection.insert_one(application)
 
-        # Add application ID to Job
-        jobs_collection.update_one(
-            {"_id": ObjectId(job_id)},
-            {"$push": {"applications": result.inserted_id}}
-        )
+            # 4. Update job with application ID
+            jobs_collection.update_one(
+                {"_id": ObjectId(job_id)},
+                {"$push": {"applications": result.inserted_id}}
+            )
 
-        return Response({"message": "Applied successfully"}, status=200)
+            return success_response(message="Applied successfully")
+
+        except Exception as e:
+            return error_response("Something went wrong", status=500, details=str(e))
 
 
 # Get all jobs applied by a user
